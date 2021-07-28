@@ -3,32 +3,42 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
 	"time"
 )
 
-func isInside(entier *int, tab *[]int) bool {
-	for _, elem := range *tab {
-		if elem == *entier {
+// isInside returns true if a value (int) is at least one time in a aray (of int) othertwise it returns false
+func isInside(value *int, arr *[]int) bool {
+	for _, elem := range *arr {
+		if elem == *value {
 			return true
 		}
 	}
 	return false
 }
 
+// printHangman prints to console the hangman at a given status
+func printHangman(hangman []string, status *uint8) {
+	for i := (*status * 7); i < (*status*7)+7; i++ {
+		fmt.Println(hangman[i])
+	}
+	fmt.Println()
+}
+
 // printWordProgress prints the progess of finding the word
 func printWordProgress(wordToFind *string, toRev *[]int) {
+	wordToFindLen := len(*wordToFind) - 1
+
 	for index, char := range *wordToFind {
 		if isInside(&index, toRev) {
-			fmt.Print(string(char))
+			fmt.Print(strings.ToUpper(string(char)))
 		} else {
 			fmt.Print("_")
 		}
 
-		if index != len(*wordToFind)-1 {
+		if index != wordToFindLen {
 			fmt.Print(" ")
 		}
 	}
@@ -43,10 +53,11 @@ func checkError(e error) {
 	}
 }
 
-//ReadFile returns an array of string which is the same as the file (line = line)
-func ReadFile(Filename string) []string {
+//readFile returns an array of string which is the same as the file (line = line) without useless lines
+func readFile(Filename string) []string {
 	var source []string
-	file, _ := os.Open(Filename)      // opens the .txt
+	file, err := os.Open(Filename) // opens the .txt
+	checkError(err)
 	scanner := bufio.NewScanner(file) // scanner scans the file
 	scanner.Split(bufio.ScanLines)    // sets-up scanner preference to read the file line-by-line
 	for scanner.Scan() {              // loop that performs a line-by-line scan on each new iteration
@@ -58,40 +69,25 @@ func ReadFile(Filename string) []string {
 	return source
 }
 
-// readFile reads files
-func readFile() string {
-	// read file words.txt
-
-	// data, err := ioutil.ReadFile("words.txt")
-	// checkError(err)
-	// return string(data)
-
-	// read any file
-	input_files := os.Args[1:]
-
-	// if len(input_files) < 1 {
-	// 	fmt.Println("Not detected files.")
-	// } else {
-	fmt.Println("File_name is : ", input_files[0])
-	data, err := ioutil.ReadFile(input_files[0])
-	checkError(err)
-	return string(data)
-	//}
-}
-
 func main() {
-	// Get hangman
-	hangman := ReadFile("hangman.txt")
+	// Check if user provide file containing words
+	if len(os.Args[1:]) <= 0 {
+		fmt.Println("Missing files of words.")
+		return
+	}
 
-	// get word - open file to get word
+	// Get hangman
+	hangman := readFile("hangman.txt")
+
+	// Open file to get word
 	rand.Seed(time.Now().UnixNano())
-	randINT := rand.Intn(len(strings.Split(readFile(), "\n")))
-	wordToFind := strings.Split(readFile(), "\n")[randINT]
+	words := readFile(os.Args[1])
+	wordToFind := words[rand.Intn(len(words))]
 
 	// Number of letter to reveal
 	reveal := len(wordToFind)/2 - 1
 
-	toRev := []int{}
+	var toRev []int
 	if reveal > 0 {
 		var randInt int
 
@@ -106,52 +102,49 @@ func main() {
 		}
 	}
 
-	var myInput string
-
 	fmt.Println("Good luck, you have 10 attempts.")
-
 	printWordProgress(&wordToFind, &toRev)
 
-	attempts := 0
-	inside := false
+	var userInput string
+	var attempts uint8
+	var charInside bool
 
 	for attempts != 10 {
-		inside = false
+		charInside = false
 		// Get user input
 		fmt.Print("Choose: ")
-		fmt.Scanln(&myInput)
+		fmt.Scanln(&userInput)
 
 		// Check is choosen letter is in the word
 		for index, char := range wordToFind {
-			if strings.EqualFold(strings.ToUpper(string(char)), strings.ToUpper(myInput)) {
+			if strings.EqualFold(strings.ToUpper(string(char)), strings.ToUpper(userInput)) {
 				if !isInside(&index, &toRev) {
 					toRev = append(toRev, index)
 				}
-				inside = true
+				charInside = true
 			}
 		}
 
-		if !inside {
+		// Si lettre proposé non pas dans mot
+		if !charInside {
+			fmt.Println("Not present in the word,", 10-attempts-1, "attempts remaining")
 
-			fmt.Println("Not present in the word,", 10-attempts, "attempts remaining")
-
-			// Print pendu ici
-			for i := (attempts * 7); i < (attempts*7)+7; i++ {
-				fmt.Println(hangman[i])
-			}
+			// Display Hangman
+			printHangman(hangman, &attempts)
 			attempts++
 		} else {
 			// Print word progess
 			printWordProgress(&wordToFind, &toRev)
 		}
 
-		// Si mot trouvé
+		// If word found
 		if len(toRev) == len(wordToFind) {
 			fmt.Println("Congrats !")
 			break
 		}
 	}
 
+	// Si nombre d'essai max atteint
 	if attempts == 10 {
 		fmt.Println("Failed")
 	}
