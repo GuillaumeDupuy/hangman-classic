@@ -61,9 +61,22 @@ func ReadFile(Filename string) []string {
 // readFile reads files
 func readFile() string {
 	// read file words.txt
-	data, err := ioutil.ReadFile("words.txt")
+
+	// data, err := ioutil.ReadFile("words.txt")
+	// checkError(err)
+	// return string(data)
+
+	// read any file
+	input_files := os.Args[1:]
+
+	// if len(input_files) < 1 {
+	// 	fmt.Println("Not detected files.")
+	// } else {
+	fmt.Println("File_name is : ", input_files[0])
+	data, err := ioutil.ReadFile(input_files[0])
 	checkError(err)
 	return string(data)
+	//}
 }
 
 func main() {
