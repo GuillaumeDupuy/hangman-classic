@@ -81,6 +81,7 @@ func main() {
 
 	// Open file to get word
 	rand.Seed(time.Now().UnixNano())
+	fmt.Println("File_name is : ", os.Args[1])
 	words := readFile(os.Args[1])
 	wordToFind := words[rand.Intn(len(words))]
 
